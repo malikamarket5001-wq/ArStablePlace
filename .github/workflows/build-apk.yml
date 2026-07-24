@@ -1,0 +1,49 @@
+name: Build AR Stable Place APK
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Set up Gradle 8.14.5
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: "8.14.5"
+
+      - name: Download bundled GLB model
+        run: |
+          mkdir -p app/src/main/assets/models
+          curl --fail --location --retry 3 \
+            "https://raw.githubusercontent.com/sceneview/sceneview/c18c3c8a7f3065cb83cb9833eedd6829d90db18e/samples/android-demo/src/main/assets/models/khronos_lantern.glb" \
+            --output app/src/main/assets/models/stable_model.glb
+          test -s app/src/main/assets/models/stable_model.glb
+
+      - name: Build debug APK
+        run: gradle :app:assembleDebug --stacktrace --no-daemon
+
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ArStablePlace-debug-apk
+          path: app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
+          retention-days: 14
