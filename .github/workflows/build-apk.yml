@@ -38,9 +38,32 @@ jobs:
           test -s app/src/main/assets/models/stable_model.glb
 
       - name: Build debug APK
-        run: gradle :app:assembleDebug --stacktrace --no-daemon
+        id: gradle_build
+        shell: bash
+        run: |
+          set +e
+          gradle :app:assembleDebug --stacktrace --no-daemon --console=plain > build.log 2>&1
+          status=$?
+          echo "exit_code=$status" >> "$GITHUB_OUTPUT"
+          exit 0
+
+      - name: Upload build log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ArStablePlace-build-log
+          path: build.log
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Fail when Gradle failed
+        if: steps.gradle_build.outputs.exit_code != '0'
+        run: |
+          echo "Gradle build failed. Diagnostic log was uploaded."
+          exit 1
 
       - name: Upload APK artifact
+        if: steps.gradle_build.outputs.exit_code == '0'
         uses: actions/upload-artifact@v4
         with:
           name: ArStablePlace-debug-apk
