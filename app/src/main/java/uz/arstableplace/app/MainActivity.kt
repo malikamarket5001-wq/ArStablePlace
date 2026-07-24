@@ -16,7 +16,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.weight
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
@@ -33,8 +32,10 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.google.ar.core.Anchor
@@ -77,6 +78,7 @@ private fun ARPlacementScreen() {
     var anchor by remember { mutableStateOf<Anchor?>(null) }
     var cameraTracking by remember { mutableStateOf(false) }
     var placementReady by remember { mutableStateOf(false) }
+    var viewSize by remember { mutableStateOf(IntSize.Zero) }
     val latestHit = remember { AtomicReference<HitResult?>(null) }
 
     DisposableEffect(Unit) {
@@ -87,7 +89,9 @@ private fun ARPlacementScreen() {
 
     Box(modifier = Modifier.fillMaxSize()) {
         ARSceneView(
-            modifier = Modifier.fillMaxSize(),
+            modifier = Modifier
+                .fillMaxSize()
+                .onSizeChanged { viewSize = it },
             engine = engine,
             modelLoader = modelLoader,
             planeRenderer = anchor == null,
@@ -102,8 +106,8 @@ private fun ARPlacementScreen() {
                 val tracking = frame.camera.trackingState == TrackingState.TRACKING
                 if (cameraTracking != tracking) cameraTracking = tracking
 
-                if (anchor == null && tracking) {
-                    val hit = frame.hitTest(frame.width / 2f, frame.height / 2f)
+                if (anchor == null && tracking && viewSize != IntSize.Zero) {
+                    val hit = frame.hitTest(viewSize.width / 2f, viewSize.height / 2f)
                         .firstOrNull { result ->
                             val plane = result.trackable as? Plane
                             plane != null &&
@@ -212,26 +216,21 @@ private fun ARPlacementScreen() {
                     Text("JOYLASHTIRISH", fontWeight = FontWeight.Bold, fontSize = 16.sp)
                 }
             } else {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                Button(
+                    onClick = {
+                        anchor?.detach()
+                        anchor = null
+                    },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(56.dp),
+                    shape = RoundedCornerShape(16.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Color.White,
+                        contentColor = Color(0xFF10161E)
+                    )
                 ) {
-                    Button(
-                        onClick = {
-                            anchor?.detach()
-                            anchor = null
-                        },
-                        modifier = Modifier
-                            .weight(1f)
-                            .height(56.dp),
-                        shape = RoundedCornerShape(16.dp),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = Color.White,
-                            contentColor = Color(0xFF10161E)
-                        )
-                    ) {
-                        Text("QAYTA JOYLASH", fontWeight = FontWeight.Bold)
-                    }
+                    Text("QAYTA JOYLASH", fontWeight = FontWeight.Bold)
                 }
             }
         }
